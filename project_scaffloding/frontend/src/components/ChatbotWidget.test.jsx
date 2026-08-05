@@ -19,6 +19,11 @@ describe("ChatbotWidget", () => {
     chatMock.mockReset();
   });
 
+  async function openChat(user) {
+    const openBtn = screen.queryByRole("button", { name: /Open Chatbot/i });
+    if (openBtn) await user.click(openBtn);
+  }
+
   async function openAndAsk(question) {
     const user = userEvent.setup();
     render(
@@ -26,8 +31,8 @@ describe("ChatbotWidget", () => {
         <ChatbotWidget />
       </MemoryRouter>,
     );
-    await user.click(screen.getByRole("button", { name: /Open Chatbot/i }));
-    await user.type(screen.getByPlaceholderText(/Ask a question/i), question);
+    await openChat(user);
+    await user.type(screen.getByLabelText(/Message to CSA Assistant/i), question);
     await user.click(screen.getByRole("button", { name: /^Send$/i }));
   }
 
@@ -38,10 +43,35 @@ describe("ChatbotWidget", () => {
         <ChatbotWidget />
       </MemoryRouter>,
     );
-    await user.click(screen.getByRole("button", { name: /Open Chatbot/i }));
-    expect(screen.getByText(/CSA Assistant/i)).toBeInTheDocument();
-    expect(screen.getByText(/inquiry workflows/i)).toBeInTheDocument();
-    expect(screen.getByText(/technical implementation/i)).toBeInTheDocument();
+    await openChat(user);
+    expect(screen.getByRole("dialog", { name: /CSA Assistant chat/i })).toBeInTheDocument();
+    expect(screen.getByText(/Use LLM for product help/i)).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /Chat mode selector/i })).toBeInTheDocument();
+  });
+
+  it("shows mode-specific suggestion chips for demo", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <ChatbotWidget />
+      </MemoryRouter>,
+    );
+    await openChat(user);
+    expect(screen.getByRole("button", { name: /What is this app for\?/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^RAG$/i }));
+    expect(screen.getByRole("button", { name: /When is an inquiry closed\?/i })).toBeInTheDocument();
+  });
+
+  it("shows usage metadata on replies when API returns usage", async () => {
+    chatMock.mockResolvedValueOnce({
+      reply: "Demo reply",
+      conversation_id: "conv-usage",
+      usage: { model: "gpt-4o-mini", total_tokens: 42, prompt_tokens: 30, completion_tokens: 12 },
+    });
+    await openAndAsk("Hello");
+    expect(await screen.findByText(/Demo reply/i)).toBeInTheDocument();
+    expect(screen.getByText(/gpt-4o-mini/i)).toBeInTheDocument();
+    expect(screen.getByText(/42 tokens/i)).toBeInTheDocument();
   });
 
   it("replies with password policy when asked", async () => {
@@ -87,8 +117,8 @@ describe("ChatbotWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: /Open Chatbot/i }));
-    await user.type(screen.getByPlaceholderText(/Ask a question/i), "What metrics can I see?");
+    await openChat(user);
+    await user.type(screen.getByLabelText(/Message to CSA Assistant/i), "What metrics can I see?");
     await user.click(screen.getByRole("button", { name: /^Send$/i }));
 
     expect(chatMock).toHaveBeenCalledTimes(1);
@@ -113,15 +143,14 @@ describe("ChatbotWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: /Open Chatbot/i }));
+    await openChat(user);
 
-    const modeSelect = screen.getByLabelText(/Chat mode selector/i);
-    await user.selectOptions(modeSelect, "rag");
-    await user.type(screen.getByPlaceholderText(/Ask a question/i), "First question in RAG");
+    await user.click(screen.getByRole("button", { name: /^RAG$/i }));
+    await user.type(screen.getByLabelText(/Message to CSA Assistant/i), "First question in RAG");
     await user.click(screen.getByRole("button", { name: /^Send$/i }));
 
-    await user.selectOptions(modeSelect, "llm");
-    await user.type(screen.getByPlaceholderText(/Ask a question/i), "Second question in LLM");
+    await user.click(screen.getByRole("button", { name: /^LLM$/i }));
+    await user.type(screen.getByLabelText(/Message to CSA Assistant/i), "Second question in LLM");
     await user.click(screen.getByRole("button", { name: /^Send$/i }));
 
     expect(chatMock).toHaveBeenCalledTimes(2);
@@ -151,9 +180,9 @@ describe("ChatbotWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: /Open Chatbot/i }));
-    await user.selectOptions(screen.getByLabelText(/Chat mode selector/i), "rag");
-    await user.type(screen.getByPlaceholderText(/Ask a question/i), "When is an inquiry closed?");
+    await openChat(user);
+    await user.click(screen.getByRole("button", { name: /^RAG$/i }));
+    await user.type(screen.getByLabelText(/Message to CSA Assistant/i), "When is an inquiry closed?");
     await user.click(screen.getByRole("button", { name: /^Send$/i }));
 
     const sourcesNote = await screen.findByRole("note", { name: /Sources/i });
@@ -175,9 +204,9 @@ describe("ChatbotWidget", () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole("button", { name: /Open Chatbot/i }));
+    await openChat(user);
 
-    const input = screen.getByPlaceholderText(/Ask a question/i);
+    const input = screen.getByLabelText(/Message to CSA Assistant/i);
     expect(input.getAttribute("rows")).toBe("1");
     Object.defineProperty(input, "scrollHeight", {
       configurable: true,
@@ -195,7 +224,7 @@ describe("ChatbotWidget", () => {
 
     // Multi-line should grow.
     await user.clear(input);
-    await user.type(input, "Line 1{enter}Line 2{enter}Line 3");
+    await user.type(input, "Line 1{Shift>}{Enter}{/Shift}Line 2{Shift>}{Enter}{/Shift}Line 3");
     const h2 = Number.parseInt(input.style.height || "0", 10);
     expect(h2).toBeGreaterThan(h1);
   });

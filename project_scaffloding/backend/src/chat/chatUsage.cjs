@@ -31,12 +31,16 @@ function extractUsageFromAiMessage(aiMsg) {
 
 /** Rough USD estimate per 1M tokens (adjust when provider pricing changes). */
 const MODEL_RATES_USD_PER_1M = {
+  "gemini-flash-latest": { input: 0.1, output: 0.4 },
+  "gemini-2.0-flash": { input: 0.1, output: 0.4 },
+  "gemini-1.5-flash": { input: 0.075, output: 0.3 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4o": { input: 2.5, output: 10 },
 };
 
 function estimateCostUsd(modelName, promptTokens, completionTokens) {
-  const key = typeof modelName === "string" && MODEL_RATES_USD_PER_1M[modelName] ? modelName : "gpt-4o-mini";
+  const key =
+    typeof modelName === "string" && MODEL_RATES_USD_PER_1M[modelName] ? modelName : "gemini-flash-latest";
   const r = MODEL_RATES_USD_PER_1M[key];
   const pt = Number(promptTokens) || 0;
   const ct = Number(completionTokens) || 0;

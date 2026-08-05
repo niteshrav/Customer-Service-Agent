@@ -1,2 +1,21 @@
-# Optional — not required. Local DB without Docker: see backend/scripts/start-local-pg.sh
-services: {}
+# Local dev stack — matches backend/.env (port 5434, user csa).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: csa-postgres
+    environment:
+      POSTGRES_USER: csa
+      POSTGRES_PASSWORD: csa_local_dev
+      POSTGRES_DB: customer_service_agent
+    ports:
+      - "5435:5432"
+    volumes:
+      - csa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U csa -d customer_service_agent"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  csa_pgdata:

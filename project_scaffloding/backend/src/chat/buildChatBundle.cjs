@@ -1,14 +1,18 @@
 /**
  * Module: Production chat stack factory
  *
- * Async buildChatBundle(pool): wires OpenAI LLM + embeddings, optional Redis-backed async caches, resilient LLM wrapper,
- * cached RAG retriever, Postgres conversation store, telemetry, daily budget, and createChatService. Used by app.cjs lazy singleton.
+ * Async buildChatBundle(pool): wires Gemini or OpenAI LLM + embeddings, optional Redis caches,
+ * resilient LLM, RAG, Postgres conversation store, telemetry, daily budget, createChatService.
  */
-const { createOpenAiLlm } = require("./openaiLlmFactory.cjs");
+const {
+  createDefaultLlm,
+  createDefaultEmbedQuery,
+  resolveChatProvider,
+  defaultChatModelName,
+} = require("./llmProvider.cjs");
 const { createPgRagRetriever } = require("./pgRagRetriever.cjs");
 const { createQdrantRagRetriever } = require("./qdrantRagRetriever.cjs");
 const { createQdrantClientFromEnv } = require("./qdrantClientFactory.cjs");
-const { createOpenAiEmbedQuery } = require("./openaiEmbedFactory.cjs");
 const { wrapRagRetrieverWithCache } = require("./ragRetrieverCache.cjs");
 const { createChatTelemetry } = require("./chatTelemetry.cjs");
 const { createDailyTokenBudget } = require("./chatDailyBudget.cjs");
@@ -30,8 +34,12 @@ function parseIntEnv(name, defaultVal) {
  * @param {{ llmFactory?: () => { invoke: (input: unknown, options?: unknown) => Promise<unknown> }, embedQueryFactory?: () => (text: string) => Promise<number[]> }} [options]
  */
 async function buildChatBundle(pool, options = {}) {
-  const llmFactory = options.llmFactory ?? (() => createOpenAiLlm({ model: "gpt-4o-mini" }));
-  const embedQueryFactory = options.embedQueryFactory ?? (() => createOpenAiEmbedQuery());
+  const provider = resolveChatProvider();
+  const modelName = defaultChatModelName(provider);
+  const llmFactory = options.llmFactory ?? (() => createDefaultLlm());
+  const embedQueryFactory = options.embedQueryFactory ?? (() => createDefaultEmbedQuery());
+
+  console.log(`[chat] provider=${provider} model=${modelName}`);
 
   const telemetry = createChatTelemetry();
   const maxHistory = parseIntEnv("CHAT_MAX_HISTORY_MESSAGES", 16);
@@ -124,7 +132,7 @@ async function buildChatBundle(pool, options = {}) {
     dailyBudget,
     maxHistoryMessages: maxHistory,
     historyPriorSummaryMaxChars,
-    llmModelName: "gpt-4o-mini",
+    llmModelName: modelName,
     promptVersion,
   });
 
@@ -138,7 +146,7 @@ async function buildChatBundle(pool, options = {}) {
     }
   }
 
-  return { chatService, telemetry, redisClient, close };
+  return { chatService, telemetry, redisClient, close, provider, modelName };
 }
 
 module.exports = { buildChatBundle };

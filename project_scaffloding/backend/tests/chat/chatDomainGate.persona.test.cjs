@@ -30,10 +30,17 @@ test("isPersonaMetaNavigationOrOnboarding is false for unrelated trivia", () => 
 test("isGeneralProductOnboardingQuestion detects app overview and safe password-policy asks", () => {
   assert.equal(isGeneralProductOnboardingQuestion("What is this app for?"), true);
   assert.equal(isGeneralProductOnboardingQuestion("What can I do here?"), true);
+  assert.equal(isGeneralProductOnboardingQuestion("What can I do on this page?"), true);
+  assert.equal(isGeneralProductOnboardingQuestion("Explain this page"), true);
   assert.equal(isGeneralProductOnboardingQuestion("How do I use this application?"), true);
   assert.equal(isGeneralProductOnboardingQuestion("What is the password policy for registration?"), true);
   assert.equal(isGeneralProductOnboardingQuestion("What is the dashboard?"), true);
   assert.equal(isGeneralProductOnboardingQuestion("Who is this app for?"), true);
+});
+
+test("domainGate allows page-context demo questions for guests", () => {
+  const r = domainGate({ question: "What can I do on this page?", role: "guest" });
+  assert.equal(r.shortCircuit, false);
 });
 
 test("isGeneralProductOnboardingQuestion is false for unrelated or technical probes", () => {

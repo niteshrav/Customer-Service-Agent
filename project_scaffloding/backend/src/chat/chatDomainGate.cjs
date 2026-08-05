@@ -113,6 +113,9 @@ function isGeneralProductOnboardingQuestion(question) {
     /\bwhat (is|does) (this|the) (app|application|site|product|tool)\b/.test(q) ||
     /\bwhat is this (app|application|site) (for|about)\b/.test(q) ||
     /\bwhat can i (do here|do in this app|use this (app )?for)\b/.test(q) ||
+    /\bwhat can i do on (this|the) (page|screen|home|login|dashboard)\b/.test(q) ||
+    /\bwhat (is|does) (this|the) (page|screen)\b/.test(q) ||
+    /\b(explain|describe) (this|the) (page|screen)\b/.test(q) ||
     /\bhow (do i|to|does one) use (this )?(app|application|site)\b/.test(q) ||
     /\bpurpose of (this )?(app|application|tool|site)\b/.test(q) ||
     /\b(explain|describe|overview|summary|introduction) (of |to )?(this )?(the )?(app|application|product|site)\b/.test(q) ||

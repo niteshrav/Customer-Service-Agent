@@ -1,17 +1,16 @@
 /**
- * Module: Registration page
- *
- * Client-side password policy check, AuthApi.register, redirect to login with success flag on OK.
- */
-/**
- * Module: Register
- *
- * Password policy client check, AuthApi.register, redirect to login.
+ * Module: Register — create account with password policy checks.
  */
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthApi } from "../api/client";
 import { passwordPolicyError } from "../lib/auth";
+
+const POLICY_ITEMS = [
+  "Minimum length of 8",
+  "Uppercase and lowercase letters",
+  "A number and a special character",
+];
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
@@ -46,18 +45,90 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="card">
-      <h2 className="title">Register</h2>
-      {error && <div className="error">{error}</div>}
-      <form className="form" onSubmit={onSubmit}>
-        <input className="input" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <input className="input" type="password" placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-        <small>Password policy: 8+ chars, uppercase, lowercase, number, special.</small>
-        <button className="btn" disabled={loading}>{loading ? "Creating..." : "Create Account"}</button>
-      </form>
-      <p>Already registered? <Link to="/login">Login</Link></p>
+    <div className="auth-shell">
+      <div className="auth-panel card auth-panel-register">
+        <header className="auth-panel-head">
+          <h2 className="title">Register</h2>
+          <p className="auth-lead">
+            Create an account to access the inquiry workspace and CSA Assistant demo.
+          </p>
+        </header>
+
+        {error && <div className="error">{error}</div>}
+
+        <form className="form auth-form" onSubmit={onSubmit}>
+          <label className="field">
+            <span className="field-label">Full name</span>
+            <input
+              className="input"
+              placeholder="Full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              autoComplete="name"
+              required
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Email</span>
+            <input
+              className="input"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Password</span>
+            <input
+              className="input"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+          </label>
+
+          <label className="field">
+            <span className="field-label">Confirm password</span>
+            <input
+              className="input"
+              type="password"
+              placeholder="Confirm password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              required
+            />
+          </label>
+
+          <div className="password-policy" role="note" aria-label="Password policy">
+            <div className="password-policy-title">Password policy</div>
+            <ul className="password-policy-list">
+              {POLICY_ITEMS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <small className="password-policy-legacy">
+              Password policy: 8+ chars, uppercase, lowercase, number, special.
+            </small>
+          </div>
+
+          <button className="btn" disabled={loading}>
+            {loading ? "Creating..." : "Create Account"}
+          </button>
+        </form>
+
+        <p className="auth-footer-link">
+          Already registered? <Link to="/login">Login</Link>
+        </p>
+      </div>
     </div>
   );
 }

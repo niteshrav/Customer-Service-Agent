@@ -11,7 +11,7 @@ const { Pool } = require("pg");
 require(path.join(__dirname, "..", "env.cjs")).loadBackendEnv();
 
 const { chunkText } = require("../src/chat/simpleChunker.cjs");
-const { createOpenAiEmbeddings } = require("../src/chat/openaiEmbedFactory.cjs");
+const { createDefaultEmbeddings, resolveChatProvider } = require("../src/chat/llmProvider.cjs");
 
 const CORPUS_DIR = path.join(__dirname, "..", "rag", "corpus");
 const CORPUS_VERSION = process.env.RAG_CORPUS_VERSION || "v1";
@@ -44,7 +44,8 @@ async function main() {
     process.exit(1);
   }
 
-  const embeddings = createOpenAiEmbeddings();
+  const embeddings = createDefaultEmbeddings();
+  console.log(`[rag:ingest] provider=${resolveChatProvider()}`);
   const pool = new Pool({ connectionString: databaseUrl });
 
   try {

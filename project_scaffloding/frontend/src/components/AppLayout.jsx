@@ -1,12 +1,5 @@
 /**
- * Module: Shell layout (header, nav, footer, outlet)
- *
- * Global chrome: links by auth state, logout, legal footer. Renders child routes via Outlet and mounts ChatbotWidget on every page.
- */
-/**
- * Module: Shell layout
- *
- * Header, nav, footer, child routes (Outlet), and global ChatbotWidget on every page.
+ * Module: Shell layout — header, nav, footer, outlet, global chatbot.
  */
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { clearSession, getUser, isAuthed } from "../lib/auth";
@@ -20,7 +13,11 @@ export default function AppLayout() {
   const year = new Date().getFullYear();
 
   async function logout() {
-    try { await AuthApi.logout(); } catch {}
+    try {
+      await AuthApi.logout();
+    } catch {
+      /* ignore */
+    }
     clearSession();
     navigate("/login", { replace: true });
   }
@@ -28,14 +25,21 @@ export default function AppLayout() {
   return (
     <div className="app-shell">
       <header className="header">
-        <div><strong>Customer Service Agent</strong></div>
-        <nav>
+        <Link to="/" className="header-brand">
+          <span className="header-brand-mark">CSA</span>
+          <strong>Customer Service Agent</strong>
+        </Link>
+        <nav aria-label="Primary">
           <Link to="/">Home</Link>
           {!authed && <Link to="/login">Login</Link>}
           {!authed && <Link to="/register">Register</Link>}
           {authed && <Link to="/dashboard">Dashboard</Link>}
-          {authed && <span>{user?.full_name || user?.email}</span>}
-          {authed && <button className="btn secondary" onClick={logout}>Logout</button>}
+          {authed && <span className="header-user">{user?.full_name || user?.email}</span>}
+          {authed && (
+            <button type="button" className="btn secondary btn-compact" onClick={logout}>
+              Logout
+            </button>
+          )}
         </nav>
       </header>
       <main className="container">
@@ -44,9 +48,7 @@ export default function AppLayout() {
       <ChatbotWidget />
       <footer className="site-footer" role="contentinfo">
         <div className="site-footer-inner">
-          <div className="site-footer-left">
-            © {year} your compay. All rights reserved.
-          </div>
+          <div className="site-footer-left">© {year} your compay. All rights reserved.</div>
           <div className="site-footer-right">
             <Link to="/privacy">Privacy Policy</Link>
             <Link to="/terms">Terms of Service</Link>

@@ -1,12 +1,5 @@
 /**
- * Module: Login page
- *
- * Posts AuthApi.login, stores session, navigates to dashboard; shows env-driven demo credential hints and role fill buttons.
- */
-/**
- * Module: Login
- *
- * AuthApi.login, session storage, demo credential hints from env.
+ * Module: Login — demo role fill + credentials form.
  */
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -54,55 +47,99 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="card">
-      <h2 className="title">Login</h2>
-      {demoRoles && (
-        <div className="notice demo-login-hint" role="region" aria-label="Demo login">
-          <strong>Demo login</strong>
-          <p className="demo-roles-subtitle">Choose a role and click Fill to populate the form.</p>
+    <div className="auth-shell">
+      <div className="auth-panel card">
+        <header className="auth-panel-head">
+          <h2 className="title">Login</h2>
+          <p className="auth-lead">Sign in to the inquiry workspace and CSA Assistant demo.</p>
+        </header>
 
-          <div className="demo-roles">
-            <div className="demo-role">
-              <div className="demo-role-title">Customer</div>
-              <div>Email: <code>{demoRoles.customer.email}</code></div>
-              <div>Password: <code>{demoRoles.customer.password}</code></div>
-              <button type="button" className="btn secondary" onClick={() => fillRole("customer")}>
-                Fill Customer
-              </button>
+        {demoRoles && (
+          <div className="notice demo-login-hint" role="region" aria-label="Demo login">
+            <strong>Demo login</strong>
+            <p className="demo-roles-subtitle">Choose a role and click Fill to populate the form.</p>
+
+            <div className="demo-roles">
+              <div className="demo-role">
+                <div className="demo-role-title">Customer</div>
+                <div>
+                  Email: <code>{demoRoles.customer.email}</code>
+                </div>
+                <div>
+                  Password: <code>{demoRoles.customer.password}</code>
+                </div>
+                <button type="button" className="btn secondary" onClick={() => fillRole("customer")}>
+                  Fill Customer
+                </button>
+              </div>
+
+              <div className="demo-role">
+                <div className="demo-role-title">Agent</div>
+                <div>
+                  Email: <code>{demoRoles.agent.email}</code>
+                </div>
+                <div>
+                  Password: <code>{demoRoles.agent.password}</code>
+                </div>
+                <button type="button" className="btn secondary" onClick={() => fillRole("agent")}>
+                  Fill Agent
+                </button>
+              </div>
+
+              <div className="demo-role">
+                <div className="demo-role-title">Management</div>
+                <div>
+                  Email: <code>{demoRoles.management.email}</code>
+                </div>
+                <div>
+                  Password: <code>{demoRoles.management.password}</code>
+                </div>
+                <button type="button" className="btn secondary" onClick={() => fillRole("management")}>
+                  Fill Management
+                </button>
+              </div>
             </div>
 
-            <div className="demo-role">
-              <div className="demo-role-title">Agent</div>
-              <div>Email: <code>{demoRoles.agent.email}</code></div>
-              <div>Password: <code>{demoRoles.agent.password}</code></div>
-              <button type="button" className="btn secondary" onClick={() => fillRole("agent")}>
-                Fill Agent
-              </button>
-            </div>
-
-            <div className="demo-role">
-              <div className="demo-role-title">Management</div>
-              <div>Email: <code>{demoRoles.management.email}</code></div>
-              <div>Password: <code>{demoRoles.management.password}</code></div>
-              <button type="button" className="btn secondary" onClick={() => fillRole("management")}>
-                Fill Management
-              </button>
-            </div>
+            <small>
+              Local dev only — run <code>npm run db:seed-demo</code> in <code>backend/</code> once.
+            </small>
           </div>
+        )}
 
-          <small>
-            Local dev only — run <code>npm run db:seed-demo</code> in <code>backend/</code> once.
-          </small>
-        </div>
-      )}
-      {info && <div className="success">{info}</div>}
-      {error && <div className="error">{error}</div>}
-      <form className="form" onSubmit={onSubmit}>
-        <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button className="btn" disabled={loading}>{loading ? "Signing in..." : "Sign In"}</button>
-      </form>
-      <p>New user? <Link to="/register">Register</Link></p>
+        {info && <div className="success">{info}</div>}
+        {error && <div className="error">{error}</div>}
+
+        <form className="form auth-form" onSubmit={onSubmit}>
+          <label className="field">
+            <span className="field-label">Email</span>
+            <input
+              className="input"
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Password</span>
+            <input
+              className="input"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          <button className="btn" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+        <p className="auth-footer-link">
+          New user? <Link to="/register">Register</Link>
+        </p>
+      </div>
     </div>
   );
 }

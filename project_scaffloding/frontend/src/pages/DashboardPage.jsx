@@ -86,7 +86,20 @@ export default function DashboardPage() {
     <>
       <div className="card">
         <h2 className="title">Dashboard</h2>
+        <p className="muted-line">
+          Signed in as <strong>{user?.full_name || user?.email || "user"}</strong>
+          {role ? <> · role <code>{role}</code></> : null}
+        </p>
         {error && <div className="error">{error}</div>}
+      </div>
+
+      <div className="card demo-ai-strip" role="region" aria-label="AI demo tip">
+        <div className="demo-ai-strip-title">AI demo tip</div>
+        <p className="demo-ai-strip-body">
+          Open <strong>AI Chat</strong> (bottom-right). Use <strong>LLM</strong> for product help,
+          then switch to <strong>RAG</strong> and ask about inquiry approval — citations appear when
+          the knowledge base returns sources. Expand the panel for presentations.
+        </p>
       </div>
 
       {dashboardMetrics?.inquiries && (
@@ -144,40 +157,42 @@ export default function DashboardPage() {
         ) : inquiries.length === 0 ? (
           <p>No inquiries available.</p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Inquiry ID</th><th>Customer ID</th><th>Status</th><th>Accessible</th><th>Issue identified</th><th>Issue addressed</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inquiries.map((i) => (
-                <tr key={i.id}>
-                  <td>{i.inquiry_id}</td>
-                  <td>{i.customer_id}</td>
-                  <td>{i.status}</td>
-                  <td>{String(i.accessible)}</td>
-                  <td>{String(i.issue_identified)}</td>
-                  <td>{String(i.issue_addressed)}</td>
-                  <td>
-                    <div className="row" style={{ gap: 10 }}>
-                      {canCustomerApprove(i) && (
-                        <button
-                          type="button"
-                          className="btn secondary"
-                          onClick={() => approve(i.inquiry_id)}
-                          disabled={approvingId === i.inquiry_id}
-                        >
-                          {approvingId === i.inquiry_id ? "Approving..." : "Approve"}
-                        </button>
-                      )}
-                      <Link to={`/inquiries/${encodeURIComponent(i.inquiry_id)}`}>View</Link>
-                    </div>
-                  </td>
+          <div className="table-scroll">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Inquiry ID</th><th>Customer ID</th><th>Status</th><th>Accessible</th><th>Issue identified</th><th>Issue addressed</th><th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {inquiries.map((i) => (
+                  <tr key={i.id}>
+                    <td>{i.inquiry_id}</td>
+                    <td>{i.customer_id}</td>
+                    <td>{i.status}</td>
+                    <td>{String(i.accessible)}</td>
+                    <td>{String(i.issue_identified)}</td>
+                    <td>{String(i.issue_addressed)}</td>
+                    <td>
+                      <div className="row" style={{ gap: 10 }}>
+                        {canCustomerApprove(i) && (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            onClick={() => approve(i.inquiry_id)}
+                            disabled={approvingId === i.inquiry_id}
+                          >
+                            {approvingId === i.inquiry_id ? "Approving..." : "Approve"}
+                          </button>
+                        )}
+                        <Link to={`/inquiries/${encodeURIComponent(i.inquiry_id)}`}>View</Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </>
