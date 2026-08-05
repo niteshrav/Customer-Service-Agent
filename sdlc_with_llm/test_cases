@@ -1,0 +1,111 @@
+Test Cases Document (updated per validation feedback)
+US-1: Handle customer inquiries
+TC-1.1 — Respond to a received inquiry (success)
+Preconditions: A customer inquiry exists and is received.
+Steps:
+Open the received inquiry.
+Enter a response.
+Send the response.
+Expected result:
+The response is sent successfully.
+The inquiry is updated with the sent response.
+TC-1.2 — Attempt to send an empty response (failure / edge)
+Preconditions: A customer inquiry exists and is received.
+Steps:
+Open the inquiry.
+Leave response content empty.
+Attempt to send the response.
+Expected result:
+The system does not send an empty response (send action fails or is not allowed).
+The inquiry is not updated with an empty response.
+TC-1.3 — Attempt to respond when inquiry cannot be opened (failure / edge)
+Preconditions: An inquiry exists but is not accessible/openable.
+Steps:
+Attempt to open the inquiry.
+Expected result:
+The inquiry does not open successfully.
+A response cannot be sent for that inquiry in this state.
+US-2: Retrieve CRM context needed for handling
+TC-2.1 — Retrieve CRM info for an inquiry requiring context (success)
+Preconditions: An inquiry is open and requires customer/account context.
+Steps:
+Request CRM information for the inquiry.
+View the returned CRM information.
+Expected result:
+The customer/account information needed to address the inquiry is retrieved from the CRM.
+Retrieved CRM information is viewable within the current inquiry handling session.
+TC-2.2 — CRM returns no matching customer/account data (failure / edge)
+Preconditions: Inquiry is open; CRM has no matching record for the inquiry context.
+Steps:
+Request CRM information.
+Expected result:
+The system indicates that no CRM information is available for the inquiry.
+No CRM information is shown as retrieved/available for the current session.
+TC-2.3 — CRM access fails during retrieval (failure / edge)
+Preconditions: Inquiry is open; CRM is unavailable or the request fails.
+Steps:
+Request CRM information.
+Expected result:
+The system indicates the CRM retrieval failed.
+CRM information is not shown as retrieved/available for the current session.
+TC-2.4 — CRM info remains available within the same inquiry handling session (success)
+Preconditions: Inquiry is open; CRM info was retrieved successfully earlier in the same session.
+Steps:
+Navigate within the inquiry handling session (e.g., move away from the CRM view/section and return).
+View CRM information again.
+Expected result:
+Previously retrieved CRM information remains available within the same inquiry handling session.
+TC-2.5 — CRM info is not assumed available across sessions (edge / boundary)
+Preconditions: CRM info was retrieved successfully in a prior inquiry handling session.
+Steps:
+End the current inquiry handling session.
+Reopen the same inquiry in a new inquiry handling session.
+Check CRM information availability without requesting retrieval again.
+Expected result:
+CRM information is not assumed available in the new session unless retrieved again in that session (or the system clearly indicates its current-session availability state).
+US-3: Use CRM context while responding
+TC-3.1 — Send a response incorporating CRM context (success)
+Preconditions: Inquiry is open; CRM information is available for the inquiry.
+Steps:
+Draft a response that uses the available CRM context.
+Send the response.
+Expected result:
+The response is sent successfully while CRM context is available to support the response.
+The inquiry is updated with the sent response.
+TC-3.2 — Send a response when CRM context is not available (edge)
+Preconditions: Inquiry is open; no CRM information is retrieved/available in the current session.
+Steps:
+Draft a response.
+Send the response.
+Expected result:
+The response is sent successfully without CRM context.
+No CRM information is shown as available for this inquiry handling session.
+TC-3.3 — Retrieve CRM info again during inquiry handling (success)
+Preconditions: Inquiry is open; additional CRM context is needed during handling.
+Steps:
+Request CRM information again during the same inquiry handling session.
+View the returned CRM information.
+Expected result:
+CRM information can be retrieved again during inquiry handling.
+Retrieved CRM information is viewable within the current session.
+US-4: Support issue resolution
+TC-4.1 — Progress interaction toward resolution using inquiry details and CRM context (success)
+Preconditions: Inquiry is open; a customer issue is identified; CRM context may or may not be available.
+Steps:
+Handle the inquiry using available inquiry details.
+If CRM context is available, use it during handling.
+Proceed until the issue is addressed.
+Expected result:
+The interaction is progressed toward resolution using the available inquiry details and (when available) CRM context.
+TC-4.2 — Mark inquiry as resolved/closed when issue is addressed (success)
+Preconditions: Inquiry is open; issue is addressed.
+Steps:
+Conclude the interaction.
+Expected result:
+The inquiry is marked as resolved/closed.
+TC-4.3 — Attempt to mark inquiry resolved/closed when issue is not addressed (failure / edge)
+Preconditions: Inquiry is open; issue is not addressed.
+Steps:
+Attempt to conclude the interaction as resolved/closed.
+Expected result:
+The system does not mark the inquiry as resolved/closed when the issue is not addressed (close-as-resolved fails or is not allowed).

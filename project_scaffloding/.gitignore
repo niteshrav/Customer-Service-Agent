@@ -1,0 +1,42 @@
+# Generic SaaS ignores
+
+## OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+## Logs
+logs/
+*.log
+
+## Environment files (keep templates like .env.example)
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+## Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+
+## Dependencies
+node_modules/
+vendor/
+
+## Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+## Coverage
+coverage/
+.coverage
+

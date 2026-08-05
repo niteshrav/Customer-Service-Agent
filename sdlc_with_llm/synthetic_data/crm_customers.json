@@ -1,0 +1,20 @@
+[
+  {
+    "customer_id": "CUST-1001",
+    "name": "Ava Patel",
+    "email": "ava.patel@example.com",
+    "account_status": "active"
+  },
+  {
+    "customer_id": "CUST-1002",
+    "name": "Noah Kim",
+    "email": "noah.kim@example.com",
+    "account_status": "active"
+  },
+  {
+    "customer_id": "CUST-1003",
+    "name": "Mia Chen",
+    "email": "mia.chen@example.com",
+    "account_status": "active"
+  }
+]

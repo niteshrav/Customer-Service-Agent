@@ -1,0 +1,14 @@
+# Placeholder dockerignore
+
+**/.git
+**/.DS_Store
+**/node_modules
+**/dist
+**/build
+**/.next
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+**/.env
+

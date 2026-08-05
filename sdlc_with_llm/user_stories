@@ -1,0 +1,21 @@
+User Stories (incorporating validation feedback; no new functionality)
+US-1: Handle customer inquiries (support agent)
+As a customer support agent, I want to receive and respond to customer inquiries, so that I can address customer needs during support interactions efficiently and consistently.
+Acceptance criteria
+Given a customer inquiry is received, when I open the inquiry, then I can provide a response to the customer.
+Given I provide a response, when I send it, then the inquiry is updated with that response.
+US-2: Retrieve CRM context needed for handling (support agent)
+As a customer support agent, I want to retrieve the customer/account information needed to address the inquiry from the CRM, so that I can respond accurately and efficiently.
+Acceptance criteria
+Given an inquiry requires customer/account context, when I request CRM information, then the customer/account information needed to address the inquiry is retrieved from the CRM.
+Given CRM information is retrieved, when I view it, then it is available during the same inquiry handling session for me to use in my response.
+US-3: Use CRM context while responding (support agent)
+As a customer support agent, I want to use CRM-retrieved information while responding to the customer, so that my handling is informed by customer context and remains consistent.
+Acceptance criteria
+Given CRM information is available for an inquiry, when I respond to the customer, then my response can incorporate that CRM context.
+Given I need additional CRM context to address the inquiry, when I request it, then I can retrieve CRM information again as needed during inquiry handling.
+US-4: Support issue resolution (support agent)
+As a customer support agent, I want support that helps progress the interaction toward resolving the customer’s issue, so that I can resolve issues efficiently and consistently.
+Acceptance criteria
+Given a customer issue is identified, when I handle the inquiry, then the interaction is progressed toward resolution using the available inquiry details and CRM context.
+Given the issue is addressed, when I conclude the interaction, then the inquiry is marked as resolved/closed.

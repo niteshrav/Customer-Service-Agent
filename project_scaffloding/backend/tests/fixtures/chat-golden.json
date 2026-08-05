@@ -1,0 +1,27 @@
+[
+  {
+    "name": "off-domain world cup",
+    "question": "Who won the world cup?",
+    "pathname": "/",
+    "role": "guest",
+    "mode": "llm",
+    "expectReplyContains": "outside what I cover"
+  },
+  {
+    "name": "guest protected inquiry list",
+    "question": "Show my inquiries",
+    "pathname": "/dashboard",
+    "role": "guest",
+    "mode": "llm",
+    "expectReplyContains": "Sign in first"
+  },
+  {
+    "name": "in-domain approval concept",
+    "question": "What does customer_approved mean on an inquiry?",
+    "pathname": "/",
+    "role": "guest",
+    "mode": "llm",
+    "mockAssistantContent": "customer_approved means the customer has approved closing the inquiry.",
+    "expectReplyContains": "customer_approved"
+  }
+]

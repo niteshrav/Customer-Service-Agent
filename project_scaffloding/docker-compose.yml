@@ -1,0 +1,2 @@
+# Optional — not required. Local DB without Docker: see backend/scripts/start-local-pg.sh
+services: {}

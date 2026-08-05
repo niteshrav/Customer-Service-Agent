@@ -1,0 +1,51 @@
+Business Requirements Document (BRD) — Customer Service Agent
+1. Document control
+Project name: Customer Service Agent (CRM-aware)
+Version: 1.0
+Date: 2026-03-18
+Owner: Customer Support / Operations
+2. Background / business need
+Customer support performance is impacted because the customer context required to respond to inquiries and resolve issues is not readily available during support interactions, resulting in slower responses and inconsistent handling. The business requires a Customer Service Agent that can handle customer inquiries, retrieve relevant customer information from the CRM, and support issue resolution consistently and efficiently.
+3. Problem statement
+Support teams need a reliable way to handle inbound customer inquiries with timely access to CRM context so issues can be resolved faster and responses remain consistent across agents and interactions.
+4. Goals and objectives (measured by KPIs)
+Improve First Response Time (FRT) for customer inquiries.
+Improve Time to Resolution (TTR) and/or Average Handle Time (AHT) through CRM-informed handling.
+Improve response consistency/quality (e.g., QA score and/or customer satisfaction measures).
+5. Scope
+In scope
+Handle customer inquiries.
+Access CRM to retrieve relevant customer/account information needed to address the inquiry.
+Support issue resolution.
+Out of scope
+Any functionality beyond handling inquiries, CRM access, and issue resolution (not specified).
+6. Stakeholders
+Primary users: Customer support agents / support team
+Business stakeholders: Support operations leadership
+System stakeholders: CRM owners/administrators
+7. Functional requirements
+FR-1: Handle customer inquiries
+The system shall support responding to customer inquiries.
+FR-2: Access CRM
+The system shall retrieve relevant customer/account information from the CRM to support inquiry handling.
+FR-3: Support issue resolution
+The system shall support moving the interaction toward resolving the customer’s issue.
+8. Non-functional requirements (high level)
+NFR-1: Reliability
+The system shall be available to support inquiry handling during support operations.
+NFR-2: Performance
+CRM information retrieval shall be timely enough to support live inquiry handling.
+NFR-3: Security and access control
+CRM access shall follow existing permissioning and data access policies.
+9. Success metrics / acceptance criteria
+Problem clarity
+The business problem and scope are documented and understood by stakeholders.
+Objective relevance
+KPIs used to evaluate success include FRT, TTR/AHT, and a quality/consistency metric (QA and/or satisfaction measure).
+Scope definition
+Delivered functionality is limited to: handle inquiries, access CRM, support issue resolution.
+10. Assumptions and dependencies
+Assumptions
+CRM contains the customer/account information needed for inquiry handling and resolution support.
+Dependencies
+Access to CRM (credentials/permissions, connectivity, and required data fields availability).

@@ -1,0 +1,32 @@
+[
+  {
+    "inquiry_id": "INQ-2001",
+    "received": true,
+    "accessible": true,
+    "customer_id": "CUST-1001",
+    "issue_identified": true,
+    "issue_addressed": false,
+    "status": "open",
+    "messages": []
+  },
+  {
+    "inquiry_id": "INQ-2002",
+    "received": true,
+    "accessible": true,
+    "customer_id": "CUST-NOT-FOUND",
+    "issue_identified": true,
+    "issue_addressed": false,
+    "status": "open",
+    "messages": []
+  },
+  {
+    "inquiry_id": "INQ-2003",
+    "received": true,
+    "accessible": false,
+    "customer_id": "CUST-1002",
+    "issue_identified": false,
+    "issue_addressed": false,
+    "status": "open",
+    "messages": []
+  }
+]
