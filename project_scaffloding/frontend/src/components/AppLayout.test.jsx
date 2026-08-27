@@ -15,8 +15,7 @@ describe("AppLayout (TDD)", () => {
     const footer = screen.getByRole("contentinfo");
     expect(footer).toBeInTheDocument();
 
-    expect(screen.getByText(/your compay/i)).toBeInTheDocument();
-    expect(screen.getByText(/All rights reserved/i)).toBeInTheDocument();
+    expect(screen.getByText(/© \d{4} Customer Service Agent\. All rights reserved\./i)).toBeInTheDocument();
 
     const termsLink = screen.getByRole("link", { name: /Terms of Service/i });
     expect(termsLink).toHaveAttribute("href", "/terms");

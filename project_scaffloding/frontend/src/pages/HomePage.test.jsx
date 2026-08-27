@@ -18,12 +18,15 @@ describe("HomePage (TDD)", () => {
 
     expect(screen.getByRole("heading", { name: /Customer Service Agent/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Login to demo/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Register$/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Register new account/i })).toBeInTheDocument();
+    expect(screen.getByText(/Demo1!csa/i)).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Enter as/i }).length).toBe(3);
 
     expect(screen.getByText(/LLM Assistant/i)).toBeInTheDocument();
     expect(screen.getByText(/RAG with Citations/i)).toBeInTheDocument();
-    expect(screen.getByText(/Inquiry Dashboard/i)).toBeInTheDocument();
-    expect(screen.getByText(/CRM \+ Guided Workflow/i)).toBeInTheDocument();
-    expect(screen.queryByText(/How it works/i)).toBeNull();
+    expect(screen.getByText(/Role Dashboards/i)).toBeInTheDocument();
+    expect(screen.getByText(/CRM \+ Workflow/i)).toBeInTheDocument();
+    expect(screen.getByText(/Try each demo role/i)).toBeInTheDocument();
+    expect(screen.getByText(/End-to-end resolution flow/i)).toBeInTheDocument();
   });
 });

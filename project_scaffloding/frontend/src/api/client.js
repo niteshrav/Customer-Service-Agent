@@ -86,10 +86,25 @@ export const InquiryApi = {
 };
 
 export const ChatApi = {
-  chat({ question, pathname, mode = "auto", conversation_id }) {
-    return apiFetch("/api/chat", {
-      method: "POST",
-      body: JSON.stringify({ question, pathname, mode, conversation_id }),
-    });
+  chat({ question, pathname, mode = "auto", conversation_id, signal } = {}) {
+    const timeoutMs = 45_000;
+    const timeoutSignal =
+      typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+        ? AbortSignal.timeout(timeoutMs)
+        : null;
+    const mergedSignal =
+      signal && timeoutSignal
+        ? AbortSignal.any([signal, timeoutSignal])
+        : signal || timeoutSignal;
+
+    return apiFetch(
+      "/api/chat",
+      {
+        method: "POST",
+        body: JSON.stringify({ question, pathname, mode, conversation_id }),
+        signal: mergedSignal,
+      },
+      { allow401: true },
+    );
   },
 };

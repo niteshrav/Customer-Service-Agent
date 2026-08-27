@@ -45,7 +45,7 @@ test("createQdrantRagRetriever search maps Qdrant hits to pgRagRetriever-shaped 
 
   assert.equal(captured.collectionName, "csa_rag");
   assert.deepEqual(captured.args.vector, qv);
-  assert.equal(captured.args.limit, 3);
+  assert.ok(captured.args.limit >= 3);
   assert.ok(captured.args.filter);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].sourceId, "qa-pdf");

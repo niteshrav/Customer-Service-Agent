@@ -67,6 +67,9 @@ function buildPrompt({ question, pathname, role, mode = "llm", evidenceChunks = 
     }
     return [
       "Mode: LLM (no external retrieval).",
+      "Answer from product knowledge and the role/workflow facts above — do not invent policies or numbers.",
+      "Prefer short structured answers: 2–5 sentences, or a tight numbered list when explaining steps.",
+      "If the user asks for documentation-backed policy detail, suggest switching to RAG mode for Sources.",
       "Use conversation history to keep answers consistent.",
     ].join("\n");
   })();

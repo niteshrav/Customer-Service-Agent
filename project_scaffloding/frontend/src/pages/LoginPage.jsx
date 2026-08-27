@@ -1,17 +1,37 @@
 /**
- * Module: Login — demo role fill + credentials form.
+ * Module: Login — demo role fill, one-click sign-in, credentials form.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthApi } from "../api/client";
 import { setSession } from "../lib/auth";
 import { getDemoRoleCredentials } from "../lib/demoRoles";
+import { toast } from "../lib/toast";
+
+const DEMO_ROLE_META = {
+  customer: {
+    title: "Customer",
+    blurb: "Submit inquiries and approve resolutions.",
+    className: "demo-role--customer",
+  },
+  agent: {
+    title: "Support agent",
+    blurb: "Work assigned cases and reply in-thread.",
+    className: "demo-role--agent",
+  },
+  management: {
+    title: "Management",
+    blurb: "Org-wide metrics and full inquiry visibility.",
+    className: "demo-role--management",
+  },
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -24,6 +44,14 @@ export default function LoginPage() {
 
   const demoRoles = getDemoRoleCredentials();
 
+  useEffect(() => {
+    const role = new URLSearchParams(location.search).get("demo");
+    if (!role || !demoRoles?.[role]) return;
+    const creds = demoRoles[role];
+    setEmail(creds.email);
+    setPassword(creds.password);
+  }, [location.search, demoRoles]);
+
   function fillRole(role) {
     const creds = demoRoles?.[role];
     if (!creds) return;
@@ -31,78 +59,84 @@ export default function LoginPage() {
     setPassword(creds.password);
   }
 
-  async function onSubmit(e) {
-    e.preventDefault();
+  async function signInWithCredentials(nextEmail, nextPassword, roleKey = "") {
     setError("");
     setLoading(true);
+    if (roleKey) setDemoLoading(roleKey);
     try {
-      const data = await AuthApi.login({ email, password });
+      const data = await AuthApi.login({ email: nextEmail, password: nextPassword });
       setSession(data.token, data.user);
+      toast.success("Signed in successfully");
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err.message || "Login failed");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
+      setDemoLoading("");
     }
+  }
+
+  async function signInAsRole(role) {
+    const creds = demoRoles?.[role];
+    if (!creds) return;
+    setEmail(creds.email);
+    setPassword(creds.password);
+    await signInWithCredentials(creds.email, creds.password, role);
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    await signInWithCredentials(email, password);
   }
 
   return (
     <div className="auth-shell">
       <div className="auth-panel card">
         <header className="auth-panel-head">
-          <h2 className="title">Login</h2>
-          <p className="auth-lead">Sign in to the inquiry workspace and CSA Assistant demo.</p>
+          <p className="auth-kicker">Demo workspace</p>
+          <h2 className="title">Sign in</h2>
+          <p className="auth-lead">Choose a demo role or enter credentials to open the inquiry workspace.</p>
         </header>
 
         {demoRoles && (
           <div className="notice demo-login-hint" role="region" aria-label="Demo login">
-            <strong>Demo login</strong>
-            <p className="demo-roles-subtitle">Choose a role and click Fill to populate the form.</p>
+            <strong>One-click demo access</strong>
+            <p className="demo-roles-subtitle">Pre-seeded accounts for evaluators — password is the same for all roles.</p>
 
             <div className="demo-roles">
-              <div className="demo-role">
-                <div className="demo-role-title">Customer</div>
-                <div>
-                  Email: <code>{demoRoles.customer.email}</code>
-                </div>
-                <div>
-                  Password: <code>{demoRoles.customer.password}</code>
-                </div>
-                <button type="button" className="btn secondary" onClick={() => fillRole("customer")}>
-                  Fill Customer
-                </button>
-              </div>
-
-              <div className="demo-role">
-                <div className="demo-role-title">Agent</div>
-                <div>
-                  Email: <code>{demoRoles.agent.email}</code>
-                </div>
-                <div>
-                  Password: <code>{demoRoles.agent.password}</code>
-                </div>
-                <button type="button" className="btn secondary" onClick={() => fillRole("agent")}>
-                  Fill Agent
-                </button>
-              </div>
-
-              <div className="demo-role">
-                <div className="demo-role-title">Management</div>
-                <div>
-                  Email: <code>{demoRoles.management.email}</code>
-                </div>
-                <div>
-                  Password: <code>{demoRoles.management.password}</code>
-                </div>
-                <button type="button" className="btn secondary" onClick={() => fillRole("management")}>
-                  Fill Management
-                </button>
-              </div>
+              {Object.entries(DEMO_ROLE_META).map(([key, meta]) => {
+                const creds = demoRoles[key];
+                if (!creds) return null;
+                return (
+                  <div key={key} className={`demo-role ${meta.className}`}>
+                    <div className="demo-role-title">{meta.title}</div>
+                    <p className="demo-role-blurb">{meta.blurb}</p>
+                    <div className="demo-role-creds">
+                      <div>
+                        Email: <code>{creds.email}</code>
+                      </div>
+                      <div>
+                        Password: <code>{creds.password}</code>
+                      </div>
+                    </div>
+                    <div className="demo-role-actions">
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => signInAsRole(key)}
+                        disabled={loading || !!demoLoading}
+                      >
+                        {demoLoading === key ? "Signing in…" : `Sign in as ${meta.title}`}
+                      </button>
+                      <button type="button" className="btn secondary" onClick={() => fillRole(key)}>
+                        Fill form
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            <small>
-              Local dev only — run <code>npm run db:seed-demo</code> in <code>backend/</code> once.
-            </small>
           </div>
         )}
 
@@ -132,8 +166,8 @@ export default function LoginPage() {
               required
             />
           </label>
-          <button className="btn" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+          <button className="btn" disabled={loading || !!demoLoading}>
+            {loading && !demoLoading ? "Signing in..." : "Sign In"}
           </button>
         </form>
         <p className="auth-footer-link">

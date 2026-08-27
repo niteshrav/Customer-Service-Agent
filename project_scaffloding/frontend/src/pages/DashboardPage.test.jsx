@@ -124,11 +124,12 @@ describe("DashboardPage (TDD)", () => {
     });
 
     expect(screen.getByText("Awaiting customer approval")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument(); // total
-    expect(screen.getAllByText("1").length).toBeGreaterThanOrEqual(2); // open + resolved
+    const metricValues = Array.from(document.querySelectorAll(".metric .value")).map((el) => el.textContent);
+    expect(metricValues).toContain("2"); // total
+    expect(metricValues.filter((v) => v === "1").length).toBeGreaterThanOrEqual(2); // open + resolved
 
-    expect(screen.getByText("INQ-1")).toBeInTheDocument();
-    expect(screen.getByText("CUST-1")).toBeInTheDocument();
+    expect(screen.getAllByText("INQ-1").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("CUST-1").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole("link", { name: /View/i }).length).toBeGreaterThanOrEqual(2);
 
     // Refresh button must be removed.
@@ -200,8 +201,8 @@ describe("DashboardPage (TDD)", () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    await waitFor(() => expect(screen.getByText("INQ-1")).toBeInTheDocument());
-    const approveBtn = screen.getByRole("button", { name: /Approve/i });
+    await waitFor(() => expect(screen.getAllByText("INQ-1").length).toBeGreaterThanOrEqual(1));
+    const approveBtn = screen.getAllByRole("button", { name: /Approve/i })[0];
     await user.click(approveBtn);
 
     expect(approveInquiryMock).toHaveBeenCalledWith("INQ-1");
@@ -218,7 +219,7 @@ describe("DashboardPage (TDD)", () => {
     await waitFor(() => expect(screen.getByText(/No inquiries available/i)).toBeInTheDocument());
 
     await user.type(screen.getByPlaceholderText(/Describe your issue/i), "Need help");
-    await user.click(screen.getByRole("button", { name: /Submit/i }));
+    await user.click(screen.getByRole("button", { name: /^Submit$/i }));
 
     expect(createInquiryMock).toHaveBeenCalledWith("Need help");
   });

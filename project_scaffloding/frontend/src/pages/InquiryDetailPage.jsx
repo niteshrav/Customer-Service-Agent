@@ -1,17 +1,15 @@
 /**
- * Module: Inquiry thread + CRM + actions
- *
- * Fetches inquiry by URL param, messages, optional CRM; compose/send message or approve resolution depending on role and state.
+ * Module: Inquiry detail — thread, CRM, send/approve actions.
  */
-/**
- * Module: Inquiry detail
- *
- * Thread, CRM panel, send message, customer approve when applicable.
- */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { InquiryApi } from "../api/client";
 import { getUser } from "../lib/auth";
+import { formatTs, getInquiryDisplayStatus } from "../lib/inquiryDisplay";
+import { toast } from "../lib/toast";
+import { StatusBadge, FlagPill } from "../components/StatusBadge";
+import { Skeleton } from "../components/Skeleton";
+import EmptyState from "../components/EmptyState";
 
 export default function InquiryDetailPage() {
   const { inquiryId } = useParams();
@@ -24,6 +22,8 @@ export default function InquiryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [approving, setApproving] = useState(false);
+  const [sending, setSending] = useState(false);
+  const threadEndRef = useRef(null);
 
   async function load() {
     setLoading(true);
@@ -35,28 +35,46 @@ export default function InquiryDetailPage() {
       const crm = await InquiryApi.crm(inquiryId);
       setCustomer(crm.customer);
     } catch (err) {
-      setError(err.message || "Failed to load inquiry");
+      const msg = err.message || "Failed to load inquiry";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); }, [inquiryId]);
+  useEffect(() => {
+    load();
+  }, [inquiryId]);
+
+  useEffect(() => {
+    const el = threadEndRef.current;
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [messages, loading]);
 
   async function sendMessage(e) {
     e.preventDefault();
     const text = body.trim();
     if (!text) {
       setError("Message body must not be empty");
+      toast.warning("Message body must not be empty");
       return;
     }
     setError("");
+    setSending(true);
     try {
       await InquiryApi.sendMessage(inquiryId, text);
       setBody("");
+      toast.success("Response sent");
       await load();
     } catch (err) {
-      setError(err.message || "Failed to send message");
+      const msg = err.message || "Failed to send message";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -67,9 +85,12 @@ export default function InquiryDetailPage() {
     setError("");
     try {
       await InquiryApi.approveInquiry(inquiry.inquiry_id);
+      toast.success("Resolution approved");
       await load();
     } catch (err) {
-      setError(err.message || "Failed to approve inquiry");
+      const msg = err.message || "Failed to approve inquiry";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setApproving(false);
     }
@@ -81,49 +102,113 @@ export default function InquiryDetailPage() {
     inquiry?.issue_addressed === true &&
     inquiry?.customer_approved === false;
 
+  const display = getInquiryDisplayStatus(inquiry);
+
   return (
-    <>
+    <div className="page-inquiry">
       <div className="card">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <h2 className="title">Inquiry {inquiryId}</h2>
-          <Link to="/dashboard">Back to dashboard</Link>
+        <div className="page-header-row">
+          <div>
+            <p className="breadcrumb">
+              <Link to="/dashboard">Dashboard</Link>
+              <span aria-hidden="true"> / </span>
+              <span>{inquiryId}</span>
+            </p>
+            <h2 className="title">Inquiry {inquiryId}</h2>
+          </div>
+          <Link className="btn secondary btn-compact" to="/dashboard">
+            Back to dashboard
+          </Link>
         </div>
-        {error && <div className="error">{error}</div>}
-        {loading ? <p>Loading...</p> : inquiry ? (
-          <div className="grid">
-            <div><strong>Status:</strong> {inquiry.status}</div>
-            <div><strong>Customer ID:</strong> {inquiry.customer_id}</div>
-            <div><strong>Accessible:</strong> {String(inquiry.accessible)}</div>
-            <div><strong>Issue identified:</strong> {String(inquiry.issue_identified)}</div>
-            <div><strong>Issue addressed:</strong> {String(inquiry.issue_addressed)}</div>
+        {error && (
+          <div className="alert alert-error" role="alert">
+            <span>{error}</span>
+            <button type="button" className="btn secondary btn-compact" onClick={() => load()}>
+              Retry
+            </button>
+          </div>
+        )}
+        {loading ? (
+          <div className="detail-grid">
+            <Skeleton style={{ height: 18, width: "40%" }} />
+            <Skeleton style={{ height: 18, width: "55%" }} />
+            <Skeleton style={{ height: 18, width: "35%" }} />
+          </div>
+        ) : inquiry ? (
+          <div className="detail-grid">
+            <div className="detail-item">
+              <span className="detail-label">Workflow</span>
+              <StatusBadge tone={display.tone}>{display.label}</StatusBadge>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">Customer ID</span>
+              <strong>{inquiry.customer_id}</strong>
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">Accessible</span>
+              <FlagPill on={!!inquiry.accessible} label={String(inquiry.accessible)} />
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">Issue identified</span>
+              <FlagPill on={!!inquiry.issue_identified} label={String(inquiry.issue_identified)} />
+            </div>
+            <div className="detail-item">
+              <span className="detail-label">Issue addressed</span>
+              <FlagPill on={!!inquiry.issue_addressed} label={String(inquiry.issue_addressed)} />
+            </div>
             {role === "customer" && (
-              <div><strong>Customer approved:</strong> {String(inquiry.customer_approved)}</div>
+              <div className="detail-item">
+                <span className="detail-label">Customer approved</span>
+                <FlagPill on={!!inquiry.customer_approved} label={String(inquiry.customer_approved)} />
+              </div>
             )}
           </div>
-        ) : <p>Inquiry not found.</p>}
+        ) : (
+          <EmptyState title="Inquiry not found." body="It may have been removed or you may not have access." />
+        )}
       </div>
 
       <div className="card">
         <h3 className="title">CRM Context</h3>
-        {loading ? <p>Loading CRM...</p> : customer ? (
-          <div className="grid">
-            <div><strong>Name:</strong> {customer.name}</div>
-            <div><strong>Email:</strong> {customer.email}</div>
-            <div><strong>Account status:</strong> {customer.account_status}</div>
+        {loading ? (
+          <div className="detail-grid">
+            <Skeleton style={{ height: 16, width: "50%" }} />
+            <Skeleton style={{ height: 16, width: "60%" }} />
           </div>
-        ) : <p>No CRM context available for this inquiry.</p>}
+        ) : customer ? (
+          <div className="crm-card">
+            <div className="crm-avatar" aria-hidden="true">
+              {(customer.name || "?").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="crm-body">
+              <div className="crm-name">{customer.name}</div>
+              <div className="crm-meta">{customer.email}</div>
+              <div className="crm-meta">
+                Account: <StatusBadge tone={customer.account_status === "active" ? "success" : "neutral"}>{customer.account_status}</StatusBadge>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <EmptyState title="No CRM context available for this inquiry." />
+        )}
       </div>
 
       <div className="card">
         <h3 className="title">Messages</h3>
-        {messages.length === 0 ? <p>No messages yet.</p> : (
-          <div className="grid">
+        {messages.length === 0 ? (
+          <EmptyState title="No messages yet." body="Agent responses will appear here." />
+        ) : (
+          <div className="message-thread" aria-live="polite">
             {messages.map((m) => (
-              <div key={m.id} className="metric">
-                <div className="label">{m.sender_type} — {new Date(m.created_at).toLocaleString()}</div>
-                <div>{m.body}</div>
-              </div>
+              <article key={m.id} className={`message-bubble sender-${m.sender_type}`}>
+                <header className="message-meta">
+                  <span className="message-sender">{m.sender_type}</span>
+                  <time dateTime={m.created_at}>{formatTs(m.created_at)}</time>
+                </header>
+                <p className="message-body">{m.body}</p>
+              </article>
             ))}
+            <div ref={threadEndRef} />
           </div>
         )}
       </div>
@@ -132,22 +217,40 @@ export default function InquiryDetailPage() {
         <div className="card">
           <h3 className="title">Send response</h3>
           <form className="form" onSubmit={sendMessage}>
-            <textarea className="textarea" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write response..." />
-            <button className="btn" disabled={!body.trim()}>Send</button>
+            <label className="field">
+              <span className="field-label">Response</span>
+              <textarea
+                className="textarea"
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Write response..."
+                disabled={sending}
+                required
+              />
+            </label>
+            <button className="btn" disabled={!body.trim() || sending}>
+              {sending ? (
+                <>
+                  <span className="spinner" aria-hidden="true" /> Sending…
+                </>
+              ) : (
+                "Send"
+              )}
+            </button>
           </form>
         </div>
       ) : (
         <div className="card">
           <h3 className="title">Customer approval</h3>
           {canCustomerApprove ? (
-            <button className="btn secondary" onClick={approveInquiry} disabled={approving}>
+            <button className="btn" onClick={approveInquiry} disabled={approving}>
               {approving ? "Approving..." : "Approve resolution"}
             </button>
           ) : (
-            <p>Approval is available only after the issue is addressed.</p>
+            <p className="muted-line">Approval is available only after the issue is addressed.</p>
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -149,7 +149,24 @@ test.describe("API — chat chatbot (TDD)", () => {
     assert.equal(calls, 1);
   });
 
-  test("general product questions invoke LLM (LLM mode)", async () => {
+  test("general product questions use instant persona reply when matched (demo chips)", async () => {
+    let calls = 0;
+    const llmMock = {
+      invoke: async () => {
+        calls += 1;
+        return { content: "SHOULD_NOT_HAPPEN" };
+      },
+    };
+    const app = createApp(pool, { chatService: createChatService({ llm: llmMock }) });
+    const res = await request(app)
+      .post("/api/chat")
+      .send({ question: "What is this app for?", pathname: "/" })
+      .expect(200);
+    assert.match(res.body.reply, /Customer Service Agent/i);
+    assert.equal(calls, 0);
+  });
+
+  test("non-chip persona questions still invoke LLM (LLM mode)", async () => {
     let calls = 0;
     const llmMock = {
       invoke: async (messages) => {
@@ -163,7 +180,7 @@ test.describe("API — chat chatbot (TDD)", () => {
     const app = createApp(pool, { chatService: createChatService({ llm: llmMock }) });
     const res = await request(app)
       .post("/api/chat")
-      .send({ question: "What is this app for?", pathname: "/" })
+      .send({ question: "Who can use this application?", pathname: "/" })
       .expect(200);
     assert.equal(res.body.reply, "GENERAL_APP_GUIDE_OK");
     assert.equal(calls, 1);
@@ -282,7 +299,14 @@ test.describe("API — chat chatbot (TDD)", () => {
       },
     };
 
-    const app = createApp(pool, { chatService: createChatService({ llm: llmMock }) });
+    const ragRetriever = {
+      embedQuery: async () => [1, 0, 0],
+      search: async () => [],
+    };
+
+    const app = createApp(pool, {
+      chatService: createChatService({ llm: llmMock, ragRetriever }),
+    });
     const management = await createManagementAndLogin(app, pool, "1");
 
     const r1 = await request(app)
@@ -297,7 +321,12 @@ test.describe("API — chat chatbot (TDD)", () => {
     const r2 = await request(app)
       .post("/api/chat")
       .set("Authorization", `Bearer ${management.token}`)
-      .send({ question: "When is an inquiry closed?", pathname: "/dashboard", mode: "rag", conversation_id: convId })
+      .send({
+        question: "Summarize the inquiry resolution workflow for management on this dashboard",
+        pathname: "/dashboard",
+        mode: "rag",
+        conversation_id: convId,
+      })
       .expect(200);
 
     assert.equal(r2.body.conversation_id, convId, "conversation_id must remain the same across mode switch");
@@ -377,7 +406,7 @@ test.describe("API — chat chatbot (TDD)", () => {
     assert.equal(llmInvoked, false);
   });
 
-  test("RAG mode with retrieved chunks calls LLM and returns citations", async () => {
+  test("RAG mode with retrieved chunks returns evidence reply without LLM", async () => {
     const client = await pool.connect();
     try {
       await client.query(
@@ -418,14 +447,12 @@ test.describe("API — chat chatbot (TDD)", () => {
       .send({ question: "When is an inquiry closed?", pathname: "/", mode: "rag" })
       .expect(200);
 
-    assert.equal(res.body.reply, "GROUNDED_REPLY");
+    assert.equal(res.body.reply.includes("customer_approved") || res.body.reply.includes("Public Inquiry"), true);
     assert.ok(Array.isArray(res.body.citations));
     assert.equal(res.body.citations.length, 1);
     assert.equal(res.body.citations[0].source_id, "public-inquiry-workflow");
-
-    const systemText = seen.messages[0]?.content || "";
-    assert.ok(systemText.toLowerCase().includes("evidence"), "system prompt should include evidence block");
-    assert.ok(systemText.includes("customer_approved"), "evidence body should be in system prompt");
+    assert.equal(seen.messages, null, "LLM should not be invoked when evidence reply is available");
+    assert.equal(res.body.usage?.evidence_fallback, true);
   });
 
   test("LLM response includes usage when model returns usage_metadata", async () => {
@@ -526,6 +553,46 @@ test.describe("API — chat chatbot (TDD)", () => {
       if (prev === undefined) delete process.env.CHAT_METRICS_TOKEN;
       else process.env.CHAT_METRICS_TOKEN = prev;
     }
+  });
+
+  test("RAG mode uses evidence fallback when LLM is degraded but chunks were retrieved", async () => {
+    const fallback = "The assistant is temporarily unavailable. Please try again in a moment.";
+    const llmMock = {
+      invoke: async () => ({
+        content: fallback,
+        response_metadata: { llm_degraded: true },
+      }),
+    };
+    const ragRetriever = {
+      embedQuery: async () => [1, 0],
+      search: async () => [
+        {
+          sourceId: "public-inquiry-workflow",
+          title: "Workflow",
+          sectionLabel: "Closing",
+          body: "An inquiry is resolved only after customer approval.",
+          score: 0.81,
+        },
+      ],
+    };
+
+    const svc = createChatService({
+      llm: llmMock,
+      ragRetriever,
+      llmFallbackMessage: fallback,
+    });
+
+    const out = await svc.chat({
+      question: "When is an inquiry closed?",
+      pathname: "/dashboard",
+      role: "agent",
+      mode: "rag",
+    });
+
+    assert.match(out.reply, /Workflow/);
+    assert.match(out.reply, /customer approval/i);
+    assert.ok(Array.isArray(out.citations) && out.citations.length === 1);
+    assert.equal(out.usage.evidence_fallback, true);
   });
 
   test("GET /api/chat/metrics returns 503 when token is not configured", async () => {

@@ -14,6 +14,8 @@ const { ChatConversationStore } = require("./chatConversationStore.cjs");
 const { extractUsageFromAiMessage, estimateCostUsd } = require("./chatUsage.cjs");
 const { buildResponseCacheKey } = require("./chatCacheKeys.cjs");
 const { compressHistoryRows } = require("./chatHistoryCompress.cjs");
+const { buildRagEvidenceReply, isLlmDegradedResponse, isFallbackReply } = require("./ragEvidenceReply.cjs");
+const { resolvePersonaQuickReply } = require("./chatPersonaQuickReply.cjs");
 
 /** Legacy copy; domain-approved RAG requests now always continue to the LLM with no-evidence rules. */
 const RAG_EMPTY_MSG = "I couldn't find relevant documentation for that in the knowledge base.";
@@ -43,6 +45,7 @@ function createChatService({
   historyPriorSummaryMaxChars = 1500,
   llmModelName = "gpt-4o-mini",
   promptVersion = "v1",
+  llmFallbackMessage = "The assistant is temporarily unavailable. Please try again in a moment.",
 } = {}) {
   if (!llm) throw new Error("llm is required");
   const store = conversationStore || new ChatConversationStore();
@@ -79,6 +82,15 @@ function createChatService({
       const normalizedMode = mode === "rag" ? "rag" : "llm";
       if (telemetry) telemetry.recordModeUsage(normalizedMode);
 
+      const quickReply =
+        normalizedMode === "llm" ? resolvePersonaQuickReply({ question, pathname, role }) : null;
+      if (quickReply) {
+        if (telemetry) telemetry.recordGuardrailBlock();
+        await store.appendUser(convoId, question);
+        await store.appendAssistant(convoId, quickReply, { persona_quick_reply: true });
+        return { reply: quickReply, conversation_id: convoId };
+      }
+
       let evidenceChunks = [];
       let citations = [];
 
@@ -87,15 +99,109 @@ function createChatService({
         const retrieved = await ragRetriever.search({ queryVector: qv, role, limit: 5 });
         if (retrieved.length) {
           evidenceChunks = retrieved;
-          citations = retrieved.map((c) => ({
-            source_id: c.sourceId,
-            title: c.title,
-            section: c.sectionLabel,
-          }));
+          citations = retrieved.map((c) => {
+            const snippet = String(c.body || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 160);
+            return {
+              source_id: c.sourceId,
+              title: c.title,
+              section: c.sectionLabel,
+              ...(typeof c.score === "number" ? { score: Number(c.score.toFixed(4)) } : {}),
+              ...(snippet ? { snippet } : {}),
+            };
+          });
         }
       }
 
       const priorMessages = await store.listMessages(convoId);
+
+      if (normalizedMode === "rag" && evidenceChunks.length > 0) {
+        const evidenceReply = buildRagEvidenceReply(evidenceChunks);
+        if (evidenceReply) {
+          const cacheKey =
+            responseCache &&
+            buildResponseCacheKey({
+              mode: normalizedMode,
+              role,
+              pathname,
+              question,
+              historyMessages: priorMessages,
+            });
+
+          if (responseCache && cacheKey) {
+            const hit = await Promise.resolve(responseCache.get(cacheKey));
+            if (
+              hit &&
+              typeof hit === "object" &&
+              hit.reply != null &&
+              !isFallbackReply(String(hit.reply), llmFallbackMessage)
+            ) {
+              if (telemetry) telemetry.recordResponseCacheHit();
+              await store.appendUser(convoId, question);
+              const usageOut = {
+                ...(hit.usage && typeof hit.usage === "object" ? hit.usage : {}),
+                response_cache_hit: true,
+                model: llmModelName,
+              };
+              const hitCitations = Array.isArray(hit.citations) ? hit.citations : citations;
+              await store.appendAssistant(convoId, String(hit.reply), {
+                usage: usageOut,
+                citations: hitCitations,
+                response_cache_hit: true,
+              });
+              return {
+                reply: String(hit.reply),
+                conversation_id: convoId,
+                usage: usageOut,
+                citations: hitCitations,
+              };
+            }
+            if (telemetry) telemetry.recordResponseCacheMiss();
+          }
+
+          const usageForClient = {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+            estimated_cost_usd: 0,
+            response_cache_hit: false,
+            model: llmModelName,
+            evidence_fallback: true,
+          };
+          await store.appendUser(convoId, question);
+          await store.appendAssistant(convoId, evidenceReply, {
+            usage: usageForClient,
+            citations,
+          });
+          if (responseCache && cacheKey) {
+            await Promise.resolve(
+              responseCache.set(cacheKey, {
+                reply: evidenceReply,
+                citations,
+                usage: usageForClient,
+              })
+            );
+          }
+          return {
+            reply: evidenceReply,
+            conversation_id: convoId,
+            usage: usageForClient,
+            citations,
+          };
+        }
+      }
+
+      if (normalizedMode === "rag" && evidenceChunks.length === 0) {
+        const ragQuick = resolvePersonaQuickReply({ question, pathname, role });
+        if (ragQuick) {
+          await store.appendUser(convoId, question);
+          await store.appendAssistant(convoId, ragQuick, { persona_quick_reply: true });
+          return { reply: ragQuick, conversation_id: convoId };
+        }
+      }
+
       const historyRows = compressHistoryRows(priorMessages, {
         maxMessages: maxHistoryMessages,
         maxPriorSummaryChars: historyPriorSummaryMaxChars,
@@ -129,30 +235,35 @@ function createChatService({
       if (responseCache && cacheKey) {
         const hit = await Promise.resolve(responseCache.get(cacheKey));
         if (hit && typeof hit === "object" && hit.reply != null) {
-          if (telemetry) telemetry.recordResponseCacheHit();
-          await store.appendUser(convoId, question);
-          const usageOut = {
-            ...(hit.usage && typeof hit.usage === "object" ? hit.usage : {}),
-            response_cache_hit: true,
-            model: llmModelName,
-          };
-          const hitCitations = Array.isArray(hit.citations) ? hit.citations : citations;
-          await store.appendAssistant(convoId, String(hit.reply), {
-            usage: usageOut,
-            ...(normalizedMode === "rag" && ragRetriever ? { citations: hitCitations } : {}),
-            response_cache_hit: true,
-          });
-          const out = {
-            reply: String(hit.reply),
-            conversation_id: convoId,
-            usage: usageOut,
-          };
-          if (normalizedMode === "rag" && ragRetriever) {
-            out.citations = hitCitations;
+          if (isFallbackReply(String(hit.reply), llmFallbackMessage)) {
+            if (telemetry) telemetry.recordResponseCacheMiss();
+          } else {
+            if (telemetry) telemetry.recordResponseCacheHit();
+            await store.appendUser(convoId, question);
+            const usageOut = {
+              ...(hit.usage && typeof hit.usage === "object" ? hit.usage : {}),
+              response_cache_hit: true,
+              model: llmModelName,
+            };
+            const hitCitations = Array.isArray(hit.citations) ? hit.citations : citations;
+            await store.appendAssistant(convoId, String(hit.reply), {
+              usage: usageOut,
+              ...(normalizedMode === "rag" && ragRetriever ? { citations: hitCitations } : {}),
+              response_cache_hit: true,
+            });
+            const out = {
+              reply: String(hit.reply),
+              conversation_id: convoId,
+              usage: usageOut,
+            };
+            if (normalizedMode === "rag" && ragRetriever) {
+              out.citations = hitCitations;
+            }
+            return out;
           }
-          return out;
+        } else if (telemetry) {
+          telemetry.recordResponseCacheMiss();
         }
-        if (telemetry) telemetry.recordResponseCacheMiss();
       }
 
       if (dailyBudget && dailyBudget.isEnabled() && !dailyBudget.canProceed(bKey)) {
@@ -168,7 +279,28 @@ function createChatService({
       }
 
       const aiMsg = await llm.invoke(messages);
-      const content = aiMsg?.content ?? "";
+      let content = aiMsg?.content ?? "";
+      let evidenceFallback = false;
+      if (
+        normalizedMode === "rag" &&
+        evidenceChunks.length &&
+        isLlmDegradedResponse(aiMsg, llmFallbackMessage)
+      ) {
+        const evidenceReply = buildRagEvidenceReply(evidenceChunks);
+        if (evidenceReply) {
+          content = evidenceReply;
+          evidenceFallback = true;
+        }
+      } else if (
+        normalizedMode === "llm" &&
+        isLlmDegradedResponse(aiMsg, llmFallbackMessage)
+      ) {
+        const personaFallback = resolvePersonaQuickReply({ question, pathname, role });
+        if (personaFallback) {
+          content = personaFallback;
+          evidenceFallback = false;
+        }
+      }
       const replyText = content || "Sorry, I couldn't generate a reply.";
 
       const usage = extractUsageFromAiMessage(aiMsg);
@@ -187,6 +319,7 @@ function createChatService({
         estimated_cost_usd: costUsd,
         response_cache_hit: false,
         model: llmModelName,
+        ...(evidenceFallback ? { evidence_fallback: true } : {}),
       };
 
       await store.appendUser(convoId, question);
@@ -195,7 +328,7 @@ function createChatService({
         ...(normalizedMode === "rag" && ragRetriever ? { citations } : {}),
       });
 
-      if (responseCache && cacheKey) {
+      if (responseCache && cacheKey && !isFallbackReply(replyText, llmFallbackMessage)) {
         await Promise.resolve(
           responseCache.set(cacheKey, {
             reply: replyText,

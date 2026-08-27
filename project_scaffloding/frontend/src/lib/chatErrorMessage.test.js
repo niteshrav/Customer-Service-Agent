@@ -7,6 +7,16 @@ describe("formatChatError", () => {
   });
 
   it("handles OPENAI key messages", () => {
-    expect(formatChatError(new Error("OPENAI_API_KEY is not set."))).toMatch(/OPENAI_API_KEY/i);
+    expect(formatChatError(new Error("OPENAI_API_KEY is not set."))).toMatch(/OPENAI_API_KEY|GEMINI_API_KEY/i);
+  });
+
+  it("handles Gemini key messages", () => {
+    expect(formatChatError(new Error("GEMINI_API_KEY is not set."))).toMatch(/GEMINI_API_KEY/i);
+  });
+
+  it("handles abort", () => {
+    const err = new Error("Aborted");
+    err.name = "AbortError";
+    expect(formatChatError(err)).toMatch(/cancelled/i);
   });
 });

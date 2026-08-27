@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthApi } from "../api/client";
 import { passwordPolicyError } from "../lib/auth";
+import { toast } from "../lib/toast";
 
 const POLICY_ITEMS = [
   "Minimum length of 8",
@@ -27,18 +28,22 @@ export default function RegisterPage() {
     const policyErr = passwordPolicyError(password);
     if (policyErr) {
       setError(policyErr);
+      toast.warning(policyErr);
       return;
     }
     if (password !== confirm) {
       setError("Passwords do not match.");
+      toast.warning("Passwords do not match.");
       return;
     }
     setLoading(true);
     try {
       await AuthApi.register({ full_name: fullName, email, password });
+      toast.success("Account created — please sign in");
       navigate("/login?registered=1", { replace: true });
     } catch (err) {
       setError(err.message || "Registration failed");
+      toast.error(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -48,11 +53,23 @@ export default function RegisterPage() {
     <div className="auth-shell">
       <div className="auth-panel card auth-panel-register">
         <header className="auth-panel-head">
-          <h2 className="title">Register</h2>
+          <p className="auth-kicker">New account</p>
+          <h2 className="title">Create your account</h2>
           <p className="auth-lead">
-            Create an account to access the inquiry workspace and CSA Assistant demo.
+            Register for the inquiry workspace, or use a pre-seeded demo role for instant access.
           </p>
         </header>
+
+        <div className="notice auth-register-hint" role="note">
+          <strong>Evaluating the demo?</strong>
+          <p className="auth-register-hint-body">
+            Skip registration and use demo accounts on the login page — password{" "}
+            <code>Demo1!csa</code> for all roles.
+          </p>
+          <Link className="btn secondary btn-compact" to="/login">
+            Go to demo login →
+          </Link>
+        </div>
 
         {error && <div className="error">{error}</div>}
 
@@ -115,18 +132,15 @@ export default function RegisterPage() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
-            <small className="password-policy-legacy">
-              Password policy: 8+ chars, uppercase, lowercase, number, special.
-            </small>
           </div>
 
           <button className="btn" disabled={loading}>
-            {loading ? "Creating..." : "Create Account"}
+            {loading ? "Creating..." : "Create account"}
           </button>
         </form>
 
         <p className="auth-footer-link">
-          Already registered? <Link to="/login">Login</Link>
+          Already registered? <Link to="/login">Sign in</Link>
         </p>
       </div>
     </div>

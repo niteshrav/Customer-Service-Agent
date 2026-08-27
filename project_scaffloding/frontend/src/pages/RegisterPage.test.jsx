@@ -43,7 +43,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByPlaceholderText("Email"), "t@example.com");
     await user.type(screen.getByPlaceholderText("Password"), "weak");
     await user.type(screen.getByPlaceholderText("Confirm password"), "weak");
-    await user.click(screen.getByRole("button", { name: /Create Account/i }));
+    await user.click(screen.getByRole("button", { name: /Create account/i }));
 
     expect(registerMock).not.toHaveBeenCalled();
     expect(screen.getByText(/8 characters/i)).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByPlaceholderText("Email"), "t@example.com");
     await user.type(screen.getByPlaceholderText("Password"), "Aa1!aaaa");
     await user.type(screen.getByPlaceholderText("Confirm password"), "Aa1!aaab");
-    await user.click(screen.getByRole("button", { name: /Create Account/i }));
+    await user.click(screen.getByRole("button", { name: /Create account/i }));
 
     expect(registerMock).not.toHaveBeenCalled();
     expect(screen.getByText(/do not match/i)).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe("RegisterPage", () => {
     await user.type(screen.getByPlaceholderText("Email"), "t@example.com");
     await user.type(screen.getByPlaceholderText("Password"), "Aa1!aaaa");
     await user.type(screen.getByPlaceholderText("Confirm password"), "Aa1!aaaa");
-    await user.click(screen.getByRole("button", { name: /Create Account/i }));
+    await user.click(screen.getByRole("button", { name: /Create account/i }));
 
     await waitFor(() => {
       expect(registerMock).toHaveBeenCalledWith({

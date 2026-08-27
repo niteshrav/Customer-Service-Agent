@@ -51,12 +51,13 @@ describe("LoginPage", () => {
     expect(screen.getByText("cust@example.com")).toBeInTheDocument();
     expect(screen.getByText("agent@example.com")).toBeInTheDocument();
     expect(screen.getByText("lead@example.com")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fill Customer/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fill Agent/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fill Management/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Fill form/i }).length).toBe(3);
+    expect(screen.getByRole("button", { name: /Sign in as Customer/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Sign in as Support agent/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Sign in as Management/i })).toBeInTheDocument();
   });
 
-  it("Fill button populates email/password inputs", async () => {
+  it("Fill form button populates email/password inputs", async () => {
     vi.mocked(getDemoRoleCredentials).mockReturnValue({
       customer: { email: "cust@example.com", password: "Cust1!csa" },
       agent: { email: "agent@example.com", password: "Agent1!csa" },
@@ -65,7 +66,7 @@ describe("LoginPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: /Fill Customer/i }));
+    await user.click(screen.getAllByRole("button", { name: /Fill form/i })[0]);
     expect(screen.getByPlaceholderText("Email")).toHaveValue("cust@example.com");
     expect(screen.getByPlaceholderText("Password")).toHaveValue("Cust1!csa");
   });
@@ -90,7 +91,7 @@ describe("LoginPage", () => {
 
     await user.type(screen.getByPlaceholderText("Email"), "a@b.com");
     await user.type(screen.getByPlaceholderText("Password"), "secret");
-    await user.click(screen.getByRole("button", { name: /Sign In/i }));
+    await user.click(screen.getByRole("button", { name: /^Sign In$/i }));
 
     await waitFor(() => {
       expect(loginMock).toHaveBeenCalledWith({ email: "a@b.com", password: "secret" });

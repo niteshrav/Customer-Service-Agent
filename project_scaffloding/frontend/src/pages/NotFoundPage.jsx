@@ -1,19 +1,24 @@
 /**
  * Module: 404 page
- *
- * Shown for unknown routes under AppLayout.
- */
-/**
- * Module: 404
  */
 import { Link } from "react-router-dom";
 
 export default function NotFoundPage() {
   return (
-    <div className="card">
+    <div className="card empty-page">
+      <p className="empty-code" aria-hidden="true">
+        404
+      </p>
       <h2 className="title">Page not found</h2>
-      <p>The page you requested does not exist.</p>
-      <Link to="/">Go Home</Link>
+      <p className="muted-line">The page you requested does not exist or may have moved.</p>
+      <div className="row" style={{ marginTop: 16 }}>
+        <Link className="btn" to="/">
+          Go Home
+        </Link>
+        <Link className="btn secondary" to="/dashboard">
+          Dashboard
+        </Link>
+      </div>
     </div>
   );
 }

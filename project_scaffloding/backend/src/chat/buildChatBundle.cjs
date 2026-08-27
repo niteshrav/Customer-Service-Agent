@@ -19,6 +19,7 @@ const { createDailyTokenBudget } = require("./chatDailyBudget.cjs");
 const { createPgChatConversationStore } = require("./pgChatConversationStore.cjs");
 const { createChatService } = require("./createChatService.cjs");
 const { wrapLlmWithResilience } = require("./llmResilience.cjs");
+const { wrapLlmWithTimeout } = require("./llmTimeout.cjs");
 const { toAsyncTtlCache, createRedisJsonCache, connectRedisOptional, TtlCache } = require("./chatAsyncCache.cjs");
 
 function parseIntEnv(name, defaultVal) {
@@ -66,16 +67,20 @@ async function buildChatBundle(pool, options = {}) {
     }
   }
 
-  const baseLlm = llmFactory();
-  const llm = wrapLlmWithResilience(baseLlm, {
-    maxAttempts: parseIntEnv("CHAT_LLM_RETRY_MAX_ATTEMPTS", 3),
+  const llmFallbackMessage =
+    (process.env.CHAT_LLM_FALLBACK_MESSAGE && String(process.env.CHAT_LLM_FALLBACK_MESSAGE).trim()) ||
+    "The assistant is temporarily unavailable. Please try again in a moment.";
+
+  const timedLlm = wrapLlmWithTimeout(llmFactory(), {
+    timeoutMs: parseIntEnv("CHAT_LLM_TIMEOUT_MS", 15_000),
+  });
+  const llm = wrapLlmWithResilience(timedLlm, {
+    maxAttempts: parseIntEnv("CHAT_LLM_RETRY_MAX_ATTEMPTS", 2),
     baseDelayMs: parseIntEnv("CHAT_LLM_RETRY_BASE_MS", 100),
     maxDelayMs: parseIntEnv("CHAT_LLM_RETRY_MAX_MS", 8000),
     failureThreshold: parseIntEnv("CHAT_CIRCUIT_FAILURE_THRESHOLD", 5),
     resetTimeoutMs: parseIntEnv("CHAT_CIRCUIT_RESET_MS", 60_000),
-    fallbackMessage:
-      (process.env.CHAT_LLM_FALLBACK_MESSAGE && String(process.env.CHAT_LLM_FALLBACK_MESSAGE).trim()) ||
-      "The assistant is temporarily unavailable. Please try again in a moment.",
+    fallbackMessage: llmFallbackMessage,
     telemetry,
   });
 
@@ -134,6 +139,7 @@ async function buildChatBundle(pool, options = {}) {
     historyPriorSummaryMaxChars,
     llmModelName: modelName,
     promptVersion,
+    llmFallbackMessage,
   });
 
   async function close() {

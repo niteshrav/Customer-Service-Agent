@@ -45,7 +45,7 @@ describe("ChatbotWidget", () => {
     );
     await openChat(user);
     expect(screen.getByRole("dialog", { name: /CSA Assistant chat/i })).toBeInTheDocument();
-    expect(screen.getByText(/Use LLM for product help/i)).toBeInTheDocument();
+    expect(screen.getByText(/Try RAG for answers/i)).toBeInTheDocument();
     expect(screen.getByRole("group", { name: /Chat mode selector/i })).toBeInTheDocument();
   });
 
