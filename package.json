@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "customer-service-agent",
+  "scripts": {
+    "build": "npm run build --prefix project_scaffloding/frontend",
+    "vercel-build": "npm run build --prefix project_scaffloding/frontend"
+  }
+}
